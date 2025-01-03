@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify, render_template
 from utils.query_parser import parse_query
-from utils.analysis import read_raster_data, generate_visualizations,generate_text_response
-from utils.global_config import SUPPORTED_INTENTS
+from utils.analysis import analyze_query, suggest_visualizations
+from utils.global_config import VARIABLES, ANALYSIS_TYPES, YEARS, VISUALIZATION_CAPTIONS
 import os
 import logging
 
@@ -13,22 +13,31 @@ DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 # Set up logging for debugging
 logging.basicConfig(level=logging.INFO)
 
+
 @app.route("/")
 def index():
     """Render the homepage."""
     return render_template("index.html")
 
-@app.route("/get_intents", methods=["GET"])
-def get_intents():
-    """Return SUPPORTED_INTENTS as JSON."""
-    return jsonify(SUPPORTED_INTENTS)
+
+@app.route("/get_config", methods=["GET"])
+def get_config():
+    """API to fetch configuration for the form."""
+    return jsonify({
+        "variables": VARIABLES,
+        "analysis_types": ANALYSIS_TYPES,
+        "years": YEARS
+    })
+
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    # Parse the incoming JSON data
+    """Handle chat queries and return analysis results."""
     data = request.json
-    intent = data.get("intent", "").lower()
-    variables = data.get("variables", [])
+    print(data)
+    # Extract form data
+    intent = data.get("analysisType", "").lower()
+    variables = data.get("variable", [])
     years = data.get("years", [])
     comments = data.get("comments", "")
 
@@ -40,21 +49,34 @@ def chat():
     if not years or len(years) > 2:
         return jsonify({"text": "Please select one or two years."})
 
-    
-    # Analyze the data
+    # Parse the query
     parsed_query = {
         "intent": intent,
         "variables": variables,
         "years": years,
-        "comments": comments,
+        "comments": comments
     }
 
-    data = read_raster_data(parsed_query['years'], DATA_DIR)
+    # Suggest visualizations
+    suggested_visualizations = suggest_visualizations(parsed_query)
 
-    text_analysis = generate_text_response(data, parsed_query)
-    visualization = generate_visualizations(data, parsed_query)
+    # Generate visualizations
+    result = analyze_query(parsed_query, DATA_DIR)
 
-    return jsonify({"text": text_analysis, "image_base64": visualization})
+    # Prepare captions for visualizations
+    captions = [
+        VISUALIZATION_CAPTIONS[viz].format(variable=variables[0]) for viz in suggested_visualizations
+    ]
+
+    # Prepare response
+    response = {
+        "text": result['summary'],
+        "image_base64": result['visualizations'],
+        "captions": captions
+    }
+
+    return jsonify(response)
+
 
 if __name__ == "__main__":
     logging.info("Starting Flask app...")

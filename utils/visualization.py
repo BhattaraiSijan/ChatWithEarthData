@@ -1,149 +1,140 @@
 import matplotlib.pyplot as plt
+import numpy as np
 import io
 import base64
-import geopandas as gpd
 import rasterio
 from rasterio.plot import show
-from utils.global_config import SUPPORTED_INTENTS
 
-
-def draw_line_chart(data, variables, years):
+def draw_line_chart(data):
     """
-    Draw a line chart for the given data and variables over specified years.
-    
+    Create a line chart to show trends over years.
+
     Args:
-        data (list): List of dictionaries containing year-wise data.
-        variables (list): List of variables to visualize.
-        years (list): List of years to include in the visualization.
-    
+        data (list): Processed data containing area information for each year.
+
     Returns:
-        str: Base64-encoded image of the line chart.
+        str: Base64-encoded string of the generated line chart.
     """
-    # Extract values for each variable and year
-    extracted_data = {var: [] for var in variables}
+    years = list(data.keys())
+    areas = [entry["area_km2"] for entry in data.values()]
+
     
-    for year in years:
-        # Find the data entry for the current year
-        year_data = next((entry for entry in data if entry["year"] == year), None)
-        if not year_data:
-            continue
-        for var in variables:
-            extracted_data[var].append(year_data.get(var, 0))
-
-    # Plot the line chart
-    fig, ax = plt.subplots(figsize=(8, 6))
-    for var, values in extracted_data.items():
-        ax.plot(years, values, label=var)
-
-    ax.set_title("Trend Analysis")
-    ax.set_xlabel("Years")
-    ax.set_ylabel("Values")
-    ax.legend()
+    plt.figure(figsize=(10, 7))
+    plt.plot(years, areas, marker="o", linestyle="-", label="Area (km²)", color="blue")
+    plt.title("Trend Analysis: Area Over Time", fontsize=16)
+    plt.xlabel("Years", fontsize=14)
+    plt.ylabel("Area (km²)", fontsize=14)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
     plt.grid(True)
+    plt.legend(fontsize=12)
 
-    # Save chart to Base64
+    plt.figtext(0.5, -0.1, "This visualization shows the trend of area coverage over selected years.", 
+                wrap=True, horizontalalignment='center', fontsize=12)
+
+    # Save the chart to a base64 string
     img_io = io.BytesIO()
     plt.savefig(img_io, format="png", bbox_inches="tight")
     img_io.seek(0)
-    img_b64 = base64.b64encode(img_io.read()).decode("utf-8")
-    plt.close(fig)
+    img_base64 = base64.b64encode(img_io.read()).decode("utf-8")
+    plt.close()
 
-    return img_b64
+    return img_base64
 
-def draw_stacked_area_chart(data, variables, years):
+
+def draw_bar_chart(data):
     """
-    Draw a stacked area chart showing proportions of multiple variables over time.
+    Create a bar chart for comparison between two years.
 
     Args:
-        data (dict): Processed data with proportions for variables over years.
-        variables (list): Variables to visualize.
-        years (list): List of years for the x-axis.
+        data (list): Processed data containing area information for each year.
 
     Returns:
-        str: File path of the saved chart image.
+        str: Base64-encoded string of the generated bar chart.
     """
-    values = {var: [data[year].get(var, 0) for year in years] for var in variables}
+    years = list(data.keys())
+    areas = [entry["area_km2"] for entry in data]
 
-    plt.figure(figsize=(10, 6))
-    plt.stackplot(years, *values.values(), labels=variables)
-    plt.title("Proportions of Variables Over Time")
-    plt.xlabel("Year")
-    plt.ylabel("Proportion")
-    plt.legend(loc="upper left")
-    plt.grid(True)
-    
-    file_path = "outputs/stacked_area_chart.png"
-    plt.savefig(file_path)
+    plt.figure(figsize=(10, 7))
+    plt.bar(years, areas, color="orange", label="Area (km²)")
+    plt.title("Comparison Analysis: Area for Selected Years", fontsize=16)
+    plt.xlabel("Years", fontsize=14)
+    plt.ylabel("Area (km²)", fontsize=14)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.grid(axis="y")
+    plt.legend(fontsize=12)
+
+    plt.figtext(0.5, -0.1, "This bar chart compares the area coverage for the selected years.", 
+                wrap=True, horizontalalignment='center', fontsize=12)
+
+    # Save the chart to a base64 string
+    img_io = io.BytesIO()
+    plt.savefig(img_io, format="png", bbox_inches="tight")
+    img_io.seek(0)
+    img_base64 = base64.b64encode(img_io.read()).decode("utf-8")
     plt.close()
-    
-    return file_path
+
+    return img_base64
+
 
 def draw_choropleth_map(raster_file, year, variable):
     """
-    Draw a choropleth map showing the spatial distribution of a variable.
+    Generate a choropleth map for a specific year and variable.
 
     Args:
         raster_file (str): Path to the raster file.
         year (int): Year of the data.
-        variable (str): Variable to visualize.
+        variable (str): Selected variable.
 
     Returns:
-        str: File path of the saved map image.
+        str: Base64-encoded string of the generated map.
     """
     with rasterio.open(raster_file) as src:
         data = src.read(1)  # Read the first band
-        plt.figure(figsize=(12, 8))
-        show(data, transform=src.transform, cmap="viridis")
-        plt.title(f"{variable} Distribution for {year}")
-        
-        file_path = f"outputs/{variable}_{year}_choropleth_map.png"
-        plt.savefig(file_path)
-        plt.close()
-    
-    return file_path
+        mask = data == int(variable)  # Filter by the variable
 
-def draw_change_map(raster_file1, raster_file2, year1, year2, variable):
+        plt.figure(figsize=(12, 8))
+        show(mask, transform=src.transform, cmap="Greens")
+        plt.title(f"Choropleth Map for {variable} in {year}", fontsize=16)
+        plt.figtext(0.5, -0.1, 
+                    f"This map visualizes the spatial distribution of '{variable}' in the year {year}.",
+                    wrap=True, horizontalalignment='center', fontsize=12)
+
+        # Save the map to a base64 string
+        img_io = io.BytesIO()
+        plt.savefig(img_io, format="png", bbox_inches="tight")
+        img_io.seek(0)
+        img_base64 = base64.b64encode(img_io.read()).decode("utf-8")
+        plt.close()
+
+        return img_base64
+
+
+def generate_visualizations(data, visualizations):
     """
-    Draw a change map showing differences in variable values between two years.
+    Generate visualizations based on the provided visualization types.
 
     Args:
-        raster_file1 (str): Path to the raster file for year1.
-        raster_file2 (str): Path to the raster file for year2.
-        year1 (int): First year.
-        year2 (int): Second year.
-        variable (str): Variable to visualize.
+        data (list): Processed raster data.
+        visualizations (list): List of visualization types.
 
     Returns:
-        str: File path of the saved map image.
+        dict: A dictionary of base64-encoded visualization images.
     """
-    with rasterio.open(raster_file1) as src1, rasterio.open(raster_file2) as src2:
-        data1 = src1.read(1)
-        data2 = src2.read(1)
-        change = data2 - data1
+    visualization_results = {}
 
-        plt.figure(figsize=(12, 8))
-        plt.imshow(change, cmap="coolwarm", extent=src1.bounds)
-        plt.colorbar(label="Change")
-        plt.title(f"Change in {variable} Between {year1} and {year2}")
-        
-        file_path = f"outputs/{variable}_change_map_{year1}_{year2}.png"
-        plt.savefig(file_path)
-        plt.close()
-    
-    return file_path
+    for viz in visualizations:
+        if viz == "line_chart":
+            visualization_results["line_chart"] = draw_line_chart(data)
+        elif viz == "bar_chart":
+            visualization_results["bar_chart"] = draw_bar_chart(data)
+        elif viz == "choropleth_map":
+            for entry in data:
+                raster_file = entry.get("raster_file")
+                year = entry.get("year")
+                variable = entry.get("variable")
+                if raster_file and variable:
+                    visualization_results[f"choropleth_map_{year}"] = draw_choropleth_map(raster_file, year, variable)
 
-def fetch_relevant_data_for_line_chart(data):
-    # Extract and preprocess data for line chart
-    return data
-
-def fetch_relevant_data_for_stacked_area_chart(data):
-    # Extract and preprocess data for stacked area chart
-    return data
-
-def fetch_relevant_data_for_choropleth(data):
-    # Extract and preprocess data for choropleth map
-    return data
-
-def fetch_relevant_data_for_change_map(data):
-    # Extract and preprocess data for change map
-    return data
+    return visualization_results

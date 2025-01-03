@@ -1,44 +1,44 @@
-# utils/query_parser.py
-import re
-from utils.global_config import SUPPORTED_INTENTS
+# query_parser.py
+from utils.global_config import VARIABLES, ANALYSIS_TYPES, YEARS
 
-def parse_query(user_query):
+def parse_query(query):
     """
-    Parse the user query to identify intent and variables.
+    Parse the incoming query to extract variable, analysis type, and years.
+    
+    Args:
+        query (dict): The user's input data, including variable, analysis type, years, and comments.
+    
+    Returns:
+        dict: Parsed query with structured information.
     """
-    parsed_query = {
-        "intent": None,
-        "variables": {}
+    # Extract inputs
+    variable = query.get("variable", "").lower()
+    analysis_type = query.get("analysisType", "").lower()
+    years = query.get("years", [])
+    comments = query.get("comments", "")
+
+    # Validate the variable
+    valid_variables = [v["value"] for v in VARIABLES]
+    if variable not in valid_variables:
+        raise ValueError(f"Invalid variable: {variable}. Must be one of: {', '.join(valid_variables)}")
+
+    # Validate the analysis type
+    valid_analysis_types = [a["value"] for a in ANALYSIS_TYPES]
+    if analysis_type not in valid_analysis_types:
+        raise ValueError(f"Invalid analysis type: {analysis_type}. Must be one of: {', '.join(valid_analysis_types)}")
+
+    # Validate the years
+    valid_years = [str(year) for year in YEARS]
+    for year in years:
+        if year not in valid_years:
+            raise ValueError(f"Invalid year: {year}. Must be one of: {', '.join(valid_years)}")
+    if len(years) > 2 and analysis_type in ["change_detection", "comparison"]:
+        raise ValueError("Only two years can be selected for change detection or comparison.")
+
+    # Return structured data
+    return {
+        "variable": variable,
+        "analysis_type": analysis_type,
+        "years": years,
+        "comments": comments,
     }
-
-    # Step 1: Identify intent
-    for intent, config in SUPPORTED_INTENTS.items():
-        if intent in user_query.lower():
-            parsed_query["intent"] = intent
-            break
-
-    if not parsed_query["intent"]:
-        # If no intent is identified, return as is
-        return parsed_query
-
-    # Step 2: Extract variables based on intent
-    required_vars = SUPPORTED_INTENTS[parsed_query["intent"]]["required_variables"]
-    for var in required_vars:
-        # Basic example using regex (improve as needed)
-        if var == "land_cover_type":
-            match = re.search(r"(forest|grassland|urban|water)", user_query.lower())
-            parsed_query["variables"][var] = match.group(0) if match else None
-        elif var == "time_range":
-            match = re.search(r"\b\d{4}\b to \b\d{4}\b", user_query.lower())
-            parsed_query["variables"][var] = match.group(0) if match else None
-        elif var == "time_points":
-            match = re.findall(r"\b\d{4}\b", user_query.lower())
-            parsed_query["variables"][var] = match if match else None
-        elif var == "region":
-            match = re.search(r"(north|south|east|west|central)", user_query.lower())
-            parsed_query["variables"][var] = match.group(0) if match else None
-
-    # Step 3: Validate variables
-    parsed_query["variables"] = {k: v for k, v in parsed_query["variables"].items() if v is not None}
-
-    return parsed_query

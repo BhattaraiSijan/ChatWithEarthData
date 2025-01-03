@@ -1,89 +1,132 @@
 import os
 import rasterio
 import numpy as np
-from utils.global_config import SUPPORTED_INTENTS
-from utils.visualization import *
-
-# Define forest classes and pixel area for calculation
-FOREST_CLASSES = [1, 2, 3, 4, 5]  # Example forest classes
-PIXEL_AREA_KM2 = 0.25  # Assuming 500m x 500m pixel size
-
-def generate_visualizations(data, parsed_query):
-    """Generate visualizations based on parsed query."""
-    visualizations = []
-    visualizations_list = suggest_visualizations(parsed_query)
-
-    for viz in visualizations_list:
-        if viz == "line_chart":
-            visualizations.append(draw_line_chart(data, parsed_query["variables"], parsed_query["years"]))
-        elif viz == "choropleth_map":
-            for entry in data:
-                raster_file = entry.get("raster_file")
-                if raster_file:
-                    year = entry.get("year")
-                    variable = parsed_query["variables"][0]  # Assume one variable for simplicity
-                    visualizations.append(draw_choropleth_map(raster_file, year, variable))
-
-    return visualizations
+from utils.global_config import VARIABLES, YEARS, VARIABLE_CODE_MAPPING
+from utils.visualization import generate_visualizations
+import rioxarray
 
 
-def generate_text_response(data,parsed_query):
+def analyze_query(query, data_dir):
     """
-    Generate textual analysis response based on the query and data.
-    """
-    # Use third-party API like GPT to process text response (to be implemented later)
-    response = f"Analyzed data for query: {parsed_query.get('intent')} with years {parsed_query.get('years')}"
-    return response
+    Process the entire analysis pipeline.
 
-def suggest_visualizations(parsed_query):
-    """
-    Suggest visualizations based on the parsed query.
-    """
-    intent = parsed_query.get("intent")
-    variables = parsed_query.get("variables", {})
-
-    visualizations = []
-
-    if intent in SUPPORTED_INTENTS:
-        # Fetch recommended visualizations from global config
-        visualizations = SUPPORTED_INTENTS[intent]["visualizations"]
-
-    return visualizations
-
-import os
-import rasterio
-
-def read_raster_data(years, data_dir):
-    """
-    Reads raster files for the specified years and extracts relevant data.
-    
     Args:
-        years (list): List of years for which data should be read.
-        data_dir (str): Path to the directory containing the raster files.
-    
+        query (dict): Parsed query from the user input.
+        data_dir (str): Path to the data directory.
+
     Returns:
-        list: A list of dictionaries containing data and metadata for each year.
+        dict: Results including text summary and visualizations.
     """
-    results = []
+    variable = query["variables"]
+    years = query["years"]
+    analysis_type = query["intent"]
+
+    # Read and process raster data
+    data = read_raster_data(variable, years, data_dir)
+    # Generate text summary
+    text_summary = generate_analysis_summary(data, analysis_type)
+
+    # Suggest visualizations
+    suggested_viz = suggest_visualizations(analysis_type)
+
+    # Generate visualizations
+    visualizations = generate_visualizations(data, suggested_viz)
+
+    return {
+        "summary": text_summary,
+        "visualizations": visualizations,
+    }
+
+
+def read_raster_data(variable, years, data_dir):
+    """
+    Read raster data for the given variable and years.
+
+    Args:
+        variable (str): The variable label (e.g., "classified_land").
+        years (list): List of years to analyze.
+        data_dir (str): Path to the directory containing raster files.
+
+    Returns:
+        dict: Processed raster data for each year.
+    """
+    variable_code = get_variable_code(variable)
+    data = {}
+
     for year in years:
         file_path = os.path.join(data_dir, f"LC_Type1_{year}.tif")
-        print(f"Checking file: {file_path}")  # Debugging
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"Raster file not found for year {year}: {file_path}")
 
-        if os.path.isfile(file_path):
-            with rasterio.open(file_path) as src:
-                raster_data = src.read(1)  # Read the first band
-                results.append({
-                    "year": year,
-                    "raster_file": file_path,
-                    "raster_data": raster_data,  # Store the raster array
-                    "metadata": src.meta,  # Store raster metadata
-                })
-        else:
-            print(f"File not found for year {year}: {file_path}")  # Debugging
-            results.append({
-                "year": year,
-                "raster_file": None,
-                "raster_data": None,
-                "metadata": None,
-            })
-    return results
+        with rioxarray.open_rasterio(file_path) as raster:
+            print(f"Processing raster for year {year}")
+            print(f"Variable Code: {variable_code}")
+            unique_values = np.unique(raster.values)
+            print(f"Unique values in raster: {unique_values}")
+
+            # Apply mask for the variable code
+            variable_mask = raster.values == variable_code
+            pixel_count = variable_mask.sum()
+            area_km2 = pixel_count * 0.25  # Assuming 500m x 500m pixels
+
+            print(f"Year {year}: {pixel_count} pixels, {area_km2:.2f} km²")
+
+            # Store results
+            data[year] = {
+                "variable": variable,
+                "pixel_count": int(pixel_count),
+                "area_km2": round(area_km2, 2),
+                "transform": raster.rio.transform(),
+                "crs": raster.rio.crs,
+                "year": int(year),
+            }
+
+    return data
+
+def get_variable_code(variable):
+    """
+    Map the variable label to its corresponding numeric code.
+
+    Args:
+        variable (str): The variable label (e.g., "evergreen_needleleaf_forest").
+
+    Returns:
+        int: The numeric code corresponding to the variable.
+    """
+    if variable not in VARIABLE_CODE_MAPPING:
+        raise ValueError(f"Invalid variable: {variable}")
+    return VARIABLE_CODE_MAPPING[variable]
+
+
+def generate_analysis_summary(data, analysis_type):
+    """
+    Generate a text summary based on the analysis type and processed data.
+
+    Args:
+        data (list): Processed raster data.
+        analysis_type (str): Type of analysis requested.
+
+    Returns:
+        str: Text summary of the analysis.
+    """
+    summary = "text summary for {analysis_type} analysis"
+
+    return summary
+
+
+def suggest_visualizations(analysis_type):
+    """
+    Suggest visualizations based on the analysis type.
+
+    Args:
+        analysis_type (str): Type of analysis requested.
+
+    Returns:
+        list: Suggested visualizations.
+    """
+    if analysis_type == "trend_analysis":
+        return ["line_chart", "stacked_area_chart"]
+    elif analysis_type == "change_detection":
+        return ["bar_chart", "side_by_side_maps"]
+    else:
+        return []
