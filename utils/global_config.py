@@ -42,11 +42,11 @@ VARIABLE_CODE_MAPPING = {
 
 # Supported Analysis Types and Their Expected Visualizations
 ANALYSIS_TYPES = [
-    {"value": "trend_analysis", "label": "Trend Analysis"},
+    # {"value": "trend_analysis", "label": "Trend Analysis"},
     {"value": "spatial_distribution", "label": "Spatial Distribution"},
-    {"value": "change_detection", "label": "Change Detection"},
-    {"value": "comparison", "label": "Comparison"},
-    {"value": "statistical_summary", "label": "Statistical Summary"},
+    # {"value": "change_detection", "label": "Change Detection"},
+    # {"value": "comparison", "label": "Comparison"},
+    # {"value": "statistical_summary", "label": "Statistical Summary"},
 ]
 
 # Available Years

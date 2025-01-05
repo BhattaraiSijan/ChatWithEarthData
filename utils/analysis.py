@@ -1,7 +1,7 @@
 import os
 import rasterio
 import numpy as np
-from utils.global_config import VARIABLES, YEARS, VARIABLE_CODE_MAPPING
+from utils.global_config import VARIABLES, YEARS, VARIABLE_CODE_MAPPING, ANALYSIS_VISUALIZATIONS
 from utils.visualization import generate_visualizations
 import rioxarray
 
@@ -20,7 +20,7 @@ def analyze_query(query, data_dir):
     variable = query["variables"]
     years = query["years"]
     analysis_type = query["intent"]
-
+    # print("ANALYSIS TYPE: ", analysis_type)
     # Read and process raster data
     data = read_raster_data(variable, years, data_dir)
     # Generate text summary
@@ -28,9 +28,9 @@ def analyze_query(query, data_dir):
 
     # Suggest visualizations
     suggested_viz = suggest_visualizations(analysis_type)
-
+    # print("Suggested visualizations:", suggested_viz)
     # Generate visualizations
-    visualizations = generate_visualizations(data, suggested_viz)
+    visualizations = generate_visualizations(query,data_dir, data, suggested_viz)
 
     return {
         "summary": text_summary,
@@ -113,10 +113,9 @@ def generate_analysis_summary(data, analysis_type):
 
     return summary
 
-
 def suggest_visualizations(analysis_type):
     """
-    Suggest visualizations based on the analysis type.
+    Suggest visualizations based on the analysis type using global configuration.
 
     Args:
         analysis_type (str): Type of analysis requested.
@@ -124,9 +123,4 @@ def suggest_visualizations(analysis_type):
     Returns:
         list: Suggested visualizations.
     """
-    if analysis_type == "trend_analysis":
-        return ["line_chart", "stacked_area_chart"]
-    elif analysis_type == "change_detection":
-        return ["bar_chart", "side_by_side_maps"]
-    else:
-        return []
+    return ANALYSIS_VISUALIZATIONS.get(analysis_type, [])

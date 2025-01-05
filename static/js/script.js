@@ -93,26 +93,22 @@ document.addEventListener("DOMContentLoaded", async function () {
         // Clear previous results
         textResults.innerHTML = "";
         visualizationResults.innerHTML = "";
-        console.log(result);
         // Display text result
         if (result.text) {
             const textElement = document.createElement("p");
             textElement.textContent = result.text;
             textResults.appendChild(textElement);
         }
-
         // Display visualizations
-        if (result.visualizations) {
-            result.visualizations.forEach(viz => {
-                const img = document.createElement("img");
-                img.src = `data:image/png;base64,${viz}`;
-                img.alt = "Visualization";
-                img.className = "visualization-image";
-                visualizationResults.appendChild(img);
-            });
+        if (result.image) {
+    
+            const img = document.createElement("img");
+            img.src = `data:image/png;base64,${result.image}`;
+            img.alt = "Visualization";
+            img.className = "visualization-image";
+            visualizationResults.appendChild(img);
         }
     }
-
     // Initial configuration fetch
     fetchConfig();
 });

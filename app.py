@@ -13,7 +13,6 @@ DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 # Set up logging for debugging
 logging.basicConfig(level=logging.INFO)
 
-
 @app.route("/")
 def index():
     """Render the homepage."""
@@ -34,7 +33,6 @@ def get_config():
 def chat():
     """Handle chat queries and return analysis results."""
     data = request.json
-    print(data)
     # Extract form data
     intent = data.get("analysisType", "").lower()
     variables = data.get("variable", [])
@@ -58,25 +56,24 @@ def chat():
     }
 
     # Suggest visualizations
-    suggested_visualizations = suggest_visualizations(parsed_query)
-
+    suggested_visualizations = suggest_visualizations(parsed_query['intent'])
+    # print("SUGGESTED VISUALIZATION: ", suggested_visualizations)
     # Generate visualizations
     result = analyze_query(parsed_query, DATA_DIR)
 
     # Prepare captions for visualizations
     captions = [
-        VISUALIZATION_CAPTIONS[viz].format(variable=variables[0]) for viz in suggested_visualizations
+        VISUALIZATION_CAPTIONS[viz].format(variable=variables) for viz in suggested_visualizations
     ]
 
     # Prepare response
     response = {
         "text": result['summary'],
-        "image_base64": result['visualizations'],
+        "image": result['visualizations'],
         "captions": captions
     }
 
     return jsonify(response)
-
 
 if __name__ == "__main__":
     logging.info("Starting Flask app...")
