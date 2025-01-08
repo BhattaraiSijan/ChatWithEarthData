@@ -45,7 +45,7 @@ def chat():
     if not variables:
         return jsonify({"text": "Please select at least one variable."})
     if not years or len(years) > 2:
-        return jsonify({"text": "Please select one or two years."})
+        return jsonify({"text": "Please select a year"})
 
     # Parse the query
     parsed_query = {
@@ -54,23 +54,13 @@ def chat():
         "years": years,
         "comments": comments
     }
-
-    # Suggest visualizations
-    suggested_visualizations = suggest_visualizations(parsed_query['intent'])
-    # print("SUGGESTED VISUALIZATION: ", suggested_visualizations)
-    # Generate visualizations
+    
     result = analyze_query(parsed_query, DATA_DIR)
-
-    # Prepare captions for visualizations
-    captions = [
-        VISUALIZATION_CAPTIONS[viz].format(variable=variables) for viz in suggested_visualizations
-    ]
 
     # Prepare response
     response = {
         "text": result['summary'],
         "image": result['visualizations'],
-        "captions": captions
     }
 
     return jsonify(response)

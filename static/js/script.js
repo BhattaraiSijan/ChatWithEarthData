@@ -88,27 +88,51 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
     });
 
-    // Display results in the results container
     function displayResults(result) {
         // Clear previous results
         textResults.innerHTML = "";
         visualizationResults.innerHTML = "";
-        // Display text result
+    
+        // Display text summary
         if (result.text) {
             const textElement = document.createElement("p");
             textElement.textContent = result.text;
             textResults.appendChild(textElement);
         }
+    
         // Display visualizations
         if (result.image) {
+            Object.entries(result.image).forEach(([vizType, base64String]) => {
+                const container = document.createElement("div");
+                container.className = "visualization-container";
     
-            const img = document.createElement("img");
-            img.src = `data:image/png;base64,${result.image}`;
-            img.alt = "Visualization";
-            img.className = "visualization-image";
-            visualizationResults.appendChild(img);
+                // Add title for the visualization
+                const title = document.createElement("h4");
+                title.textContent = vizType.replace(/_/g, " ").toUpperCase();
+                container.appendChild(title);
+    
+                if (vizType === "map") {
+                    // Logic for displaying the map in an iframe
+                    const iframe = document.createElement('iframe');
+                    iframe.srcdoc = atob(result.image.map); // Decoding the base64 map HTML
+                    iframe.className = "visualization-iframe";
+                    iframe.style.width = "100%";
+                    iframe.style.height = "1000px"; // Example height
+                    document.getElementById("visualization-results").appendChild(iframe);
+                } else {
+                    // Logic for displaying the choropleth map as an image
+                    const img = document.createElement("img");
+                    img.src = `data:image/png;base64,${base64String}`;
+                    img.alt = vizType;
+                    img.className = "visualization-image";
+                    container.appendChild(img);
+                }
+    
+                visualizationResults.appendChild(container);
+            });
         }
     }
+    
     // Initial configuration fetch
     fetchConfig();
 });

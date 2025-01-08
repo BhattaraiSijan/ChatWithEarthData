@@ -141,3 +141,43 @@ small {
 .form-container::-webkit-scrollbar-track, .results-container::-webkit-scrollbar-track {
     background: #ffffff;
 }
+
+.visualization-container iframe {
+    width: 100%; /* Make iframe take full width of the container */
+    height: 500px; /* Match the height specified in folium.Map or adjust as needed */
+    border: none; /* Remove borders for cleaner look */
+    display: block; /* Ensure iframe behaves as a block element */
+    box-sizing: border-box; /* Include padding and borders in the size */
+}
+
+.folium-map {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Ensure iframe takes full width and height */
+.visualization-iframe {
+    width: 100%;
+    height: 500px; /* Adjust this as per your layout */
+    border: none;
+}
+
+/* Visualization container styling */
+.visualization-container {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+/* Ensure nested map occupies the full iframe */
+iframe body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+}
+
+iframe #map {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
