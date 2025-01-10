@@ -1,19 +1,21 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import folium
-from rasterio.warp import calculate_default_transform, reproject, Resampling
+import rasterio
 import io
 import os
 import base64
-from io import BytesIO
 import json
-from shapely.geometry import mapping
 import rasterio
 import rioxarray
 import geopandas as gpd
 from rasterio.plot import show
 from rasterio.mask import mask
 from utils.global_config import VARIABLE_CODE_MAPPING
+from rasterio.warp import calculate_default_transform, reproject, Resampling
+from shapely.geometry import mapping
+from io import BytesIO
+
 
 def draw_choropleth_map(variable, year, data_dir):
     """
@@ -75,80 +77,78 @@ def generate_visualizations(query, data_dir, data, visualizations):
 
     return visualization_results
 
-
 def draw_map(variable, year, data_dir):
+    """
+    Generate a map highlighting the selected variable in the given year's GeoTIFF data.
+
+    Args:
+        variable (str): Variable name to filter (e.g., "Forest").
+        year (str): Year for the data (e.g., "2011").
+        data_dir (str): Directory containing GeoTIFF files.
+
+    Returns:
+        str: Base64-encoded HTML representation of the map.
+    """
     variable_code = VARIABLE_CODE_MAPPING[variable]
     tif_path = os.path.join(data_dir, f"LC_Type1_{year[0]}.tif")
 
-    # Temporary reprojected file path
-    reprojected_tif_path = os.path.join(data_dir, f"reprojected_LC_Type1_{year[0]}.tif")
-
-    # Open the raster file and reproject if necessary
+    # Open the raster file
     with rasterio.open(tif_path) as src:
-        raster_data = src.read(1)
-        transform = src.transform
-
-        # Check CRS and reproject if necessary
         if src.crs.to_string() != "EPSG:4326":
-            print(f"Reprojecting {tif_path} to WGS84 (EPSG:4326)")
             transform, width, height = calculate_default_transform(
                 src.crs, "EPSG:4326", src.width, src.height, *src.bounds
             )
             kwargs = src.meta.copy()
-            kwargs.update({
-                "crs": "EPSG:4326",
-                "transform": transform,
-                "width": width,
-                "height": height
-            })
+            kwargs.update({"crs": "EPSG:4326", "transform": transform, "width": width, "height": height})
 
-            with rasterio.open(reprojected_tif_path, "w", **kwargs) as dst:
-                for i in range(1, src.count + 1):
-                    reproject(
-                        source=rasterio.band(src, i),
-                        destination=rasterio.band(dst, i),
-                        src_transform=src.transform,
-                        src_crs=src.crs,
-                        dst_transform=transform,
-                        dst_crs="EPSG:4326",
-                        resampling=Resampling.nearest
-                    )
-            raster_path = reprojected_tif_path
+            # Reproject on-the-fly without saving
+            destination = np.zeros((height, width), dtype=np.uint8)
+            reproject(
+                source=rasterio.band(src, 1),
+                destination=destination,
+                src_transform=src.transform,
+                src_crs=src.crs,
+                dst_transform=transform,
+                dst_crs="EPSG:4326",
+                resampling=Resampling.nearest,
+            )
         else:
-            print(f"{tif_path} is already in WGS84 (EPSG:4326)")
-            raster_path = tif_path
+            destination = src.read(1)
+            transform = src.transform
 
-    # Open the (potentially reprojected) raster file
-    with rasterio.open(raster_path) as src:
-        raster_data = src.read(1)
-        transform = src.transform
+        # Mask for the variable
+        mask = (destination == variable_code).astype(float)
 
-        # Calculate bounds
-        bounds = rasterio.transform.array_bounds(
-            raster_data.shape[0], raster_data.shape[1], transform
+        # Downscale the mask for reduced memory usage
+        scale_factor = 4
+        mask_resized = mask[::scale_factor, ::scale_factor]
+
+        # Get the bounding box
+        left, bottom, right, top = rasterio.transform.array_bounds(
+            mask_resized.shape[0], mask_resized.shape[1], transform
         )
-        left, bottom, right, top = bounds
-        print(f"Bounds: left={left}, bottom={bottom}, right={right}, top={top}")
 
-        # Create a mask for the variable
-        mask = (raster_data == variable_code).astype(float)
+    # Generate the overlay image in memory
+    img_buffer = BytesIO()
+    plt.imshow(mask_resized, cmap="Oranges", interpolation="nearest")
+    plt.axis("off")
+    plt.savefig(img_buffer, format="png", bbox_inches="tight", pad_inches=0, transparent=True)
+    plt.close()
+    img_buffer.seek(0)
+    image_base64 = base64.b64encode(img_buffer.getvalue()).decode("utf-8")
+    img_buffer.close()
 
-        # Save the mask as an image for debugging
-        image_path = os.path.join(data_dir, "debug_mask.png")
-        plt.imshow(mask, cmap="Oranges", interpolation="nearest")
-        plt.axis("off")
-        plt.savefig(image_path, bbox_inches="tight", pad_inches=0, transparent=True)
-        plt.close()
-        print(f"Saved debug mask to {image_path}")
+    # Convert base64 image to a Folium-compatible data URL
+    image_url = f"data:image/png;base64,{image_base64}"
 
     # Create the Folium map
     center_lat = (top + bottom) / 2
     center_lon = (left + right) / 2
     m = folium.Map(location=[center_lat, center_lon], zoom_start=3)
 
-    # Overlay the mask on the map
+    # Overlay the in-memory image
     folium.raster_layers.ImageOverlay(
-        image=image_path,
+        image=image_url,
         bounds=[[bottom, left], [top, right]],
         opacity=0.8,
     ).add_to(m)
@@ -156,46 +156,12 @@ def draw_map(variable, year, data_dir):
     # Add layer control
     folium.LayerControl().add_to(m)
 
-    # Convert map to base64-encoded string
+    # Convert map to base64 string
     map_html = m._repr_html_()
     map_base64 = base64.b64encode(map_html.encode("utf-8")).decode("utf-8")
+
     return map_base64
 
-def draw_line_chart(data):
-    """
-    Create a line chart to show trends over years.
-
-    Args:
-        data (list): Processed data containing area information for each year.
-
-    Returns:
-        str: Base64-encoded string of the generated line chart.
-    """
-    years = list(data.keys())
-    areas = [entry["area_km2"] for entry in data.values()]
-
-
-    plt.figure(figsize=(10, 7))
-    plt.plot(years, areas, marker="o", linestyle="-", label="Area (km²)", color="blue")
-    plt.title("Trend Analysis: Area Over Time", fontsize=16)
-    plt.xlabel("Years", fontsize=14)
-    plt.ylabel("Area (km²)", fontsize=14)
-    plt.xticks(fontsize=12)
-    plt.yticks(fontsize=12)
-    plt.grid(True)
-    plt.legend(fontsize=12)
-
-    plt.figtext(0.5, -0.1, "This visualization shows the trend of area coverage over selected years.", 
-                wrap=True, horizontalalignment='center', fontsize=12)
-
-    # Save the chart to a base64 string
-    img_io = io.BytesIO()
-    plt.savefig(img_io, format="png", bbox_inches="tight")
-    img_io.seek(0)
-    img_base64 = base64.b64encode(img_io.read()).decode("utf-8")
-    plt.close()
-
-    return img_base64
 
 
 def draw_bar_chart(data):
