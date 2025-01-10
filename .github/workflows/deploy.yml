@@ -10,11 +10,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # Step 1: Checkout the repository
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    # Step 2: Set up SSH
     - name: Setup SSH
       run: |
         mkdir -p ~/.ssh
@@ -22,14 +20,12 @@ jobs:
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H 3.149.232.248 >> ~/.ssh/known_hosts
 
-    # Step 3: Deploy the code to EC2
     - name: Deploy to EC2
       run: |
         ssh ec2-user@3.149.232.248 << EOF
-          cd ~/ChatWithEarthData
+          cd /home/ec2-user/ChatWithEarthData
           git pull origin master
           source ~/venv/bin/activate
           pip install -r requirements.txt
           sudo systemctl restart chatwithdata
-          sudo systemctl restart nginx
         EOF
