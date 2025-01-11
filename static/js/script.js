@@ -45,6 +45,8 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     // Handle form submission
     form.addEventListener("submit", async function (event) {
+        const loadingSpinner = document.getElementById("loading-spinner");
+        loadingSpinner.style.display = "flex";
         event.preventDefault();
 
         // Collect form data
@@ -82,6 +84,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
             const result = await response.json();
             displayResults(result);
+            loadingSpinner.style.display = "none";
         } catch (error) {
             console.error("Error submitting form:", error);
             alert("Failed to process your request. Please try again.");
@@ -132,7 +135,6 @@ document.addEventListener("DOMContentLoaded", async function () {
             });
         }
     }
-    
     // Initial configuration fetch
     fetchConfig();
 });

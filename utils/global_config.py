@@ -71,4 +71,4 @@ VISUALIZATION_CAPTIONS = {
     "pie_chart": "Statistical summary of {variable} for the selected year.",
 }
 
-OPENAI_API_KEY = "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"
+OPENAI_API_KEY = "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"

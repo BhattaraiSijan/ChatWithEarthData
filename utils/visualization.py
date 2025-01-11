@@ -14,6 +14,7 @@ from rasterio.plot import show
 from rasterio.mask import mask
 from utils.global_config import VARIABLE_CODE_MAPPING
 from rasterio.warp import calculate_default_transform, reproject, Resampling
+from rasterio.transform import Affine
 from shapely.geometry import mapping
 from io import BytesIO
 
@@ -122,8 +123,11 @@ def draw_map(variable, year, data_dir):
         mask = (destination == variable_code).astype(float)
 
         # Downscale the mask for reduced memory usage
-        scale_factor = 4
+        scale_factor = 1
         mask_resized = mask[::scale_factor, ::scale_factor]
+
+        # # Adjust the transform for the downscaled mask
+        # transform_resized = transform * Affine.scale(scale_factor)
 
         # Get the bounding box
         left, bottom, right, top = rasterio.transform.array_bounds(
@@ -132,10 +136,12 @@ def draw_map(variable, year, data_dir):
 
     # Generate the overlay image in memory
     img_buffer = BytesIO()
-    plt.imshow(mask_resized, cmap="Oranges", interpolation="nearest")
-    plt.axis("off")
+    fig, ax = plt.subplots(figsize=(8, 6), dpi=100, frameon=False)
+    ax.imshow(mask_resized, cmap="Oranges", interpolation="nearest")
+    ax.axis("off")  # Remove axes
+    fig.patch.set_alpha(0.0)  # Set background to fully transparent
     plt.savefig(img_buffer, format="png", bbox_inches="tight", pad_inches=0, transparent=True)
-    plt.close()
+    plt.close(fig)
     img_buffer.seek(0)
     image_base64 = base64.b64encode(img_buffer.getvalue()).decode("utf-8")
     img_buffer.close()
@@ -163,8 +169,6 @@ def draw_map(variable, year, data_dir):
     map_base64 = base64.b64encode(map_html.encode("utf-8")).decode("utf-8")
 
     return map_base64
-
-
 
 def draw_bar_chart(data):
     """
