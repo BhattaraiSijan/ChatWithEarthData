@@ -1,12 +1,13 @@
 import os
 import rasterio
 import numpy as np
-from utils.global_config import VARIABLES, YEARS, VARIABLE_CODE_MAPPING, ANALYSIS_VISUALIZATIONS
+from utils.global_config import VARIABLES, YEARS, VARIABLE_CODE_MAPPING, ANALYSIS_VISUALIZATIONS, OPENAI_API_KEY
 from utils.visualization import generate_visualizations
 import rioxarray
+import openai
 
 
-def analyze_query(query, data_dir):
+def analyze_query(query, data_dir, metadata):
     """
     Process the entire analysis pipeline.
 
@@ -20,11 +21,10 @@ def analyze_query(query, data_dir):
     variable = query["variables"]
     years = query["years"]
     analysis_type = query["intent"]
+    user_comment = query["comments"]
     # print("ANALYSIS TYPE: ", analysis_type)
     # Read and process raster data
     data = read_raster_data(variable, years, data_dir)
-    # Generate text summary
-    text_summary = generate_analysis_summary(data, analysis_type)
 
     # Suggest visualizations
     suggested_viz = suggest_visualizations(analysis_type)
@@ -32,6 +32,8 @@ def analyze_query(query, data_dir):
     # Generate visualizations
     visualizations = generate_visualizations(query,data_dir, data, suggested_viz)
 
+    # Generate text summary
+    text_summary = generate_analysis_summary(data, analysis_type, metadata, variable, user_comment)
     return {
         "summary": text_summary,
         "visualizations": visualizations,
@@ -98,20 +100,73 @@ def get_variable_code(variable):
     return VARIABLE_CODE_MAPPING[variable]
 
 
-def generate_analysis_summary(data, analysis_type):
+# Set OpenAI API key
+openai.api_key = OPENAI_API_KEY
+
+def generate_analysis_summary(data, analysis_type, metadata, variable, user_comment=None):
     """
-    Generate a text summary based on the analysis type and processed data.
+    Generate a text summary using ChatGPT API based on the analysis type, processed data, and metadata.
 
     Args:
-        data (list): Processed raster data.
+        data (dict): Processed raster data where each key is a year and the value is a dictionary with analysis details.
         analysis_type (str): Type of analysis requested.
+        metadata (dict): Information about the data and processing.
+        variable (str): The variable being analyzed.
+        user_comment (str, optional): Additional comment or question from the user.
 
     Returns:
         str: Text summary of the analysis.
     """
-    summary = "text summary for {analysis_type} analysis"
+    # Extract summary statistics from the data
+    summary_stats = []
+    for year, details in data.items():
+        summary_stats.append(
+            f"Year {year}: "
+            f"Variable={details['variable']}, "
+            f"Pixel Count={details['pixel_count']}, "
+            f"Area={details['area_km2']} km²"
+        )
 
-    return summary
+    stats_summary = "\n".join(summary_stats)
+    user_comment_text = f"User's comment/question: {user_comment}" if user_comment else "No additional comment provided."
+
+    # Prepare the prompt
+    prompt = f"""
+    You are a highly knowledgeable data analyst. Based on the following context, generate a detailed yet concise explanation.
+
+    Analysis Context:
+    - Variable being analyzed: {variable}
+    - Type of analysis: {analysis_type}
+
+    Metadata:
+    {metadata}
+
+    Processed Data Summary:
+    - Statistics by year:
+    {stats_summary}
+
+    {user_comment_text}
+
+    Response:
+    """
+
+    # Call ChatGPT API with updated method
+    try:
+        response = openai.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "You are a data analyst assistant."},
+                {"role": "user", "content": prompt},
+            ],
+            max_tokens=400,
+            temperature=0.7,
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        print(f"Error generating summary: {e}")
+        return "An error occurred while generating the summary."
+
+
 
 def suggest_visualizations(analysis_type):
     """

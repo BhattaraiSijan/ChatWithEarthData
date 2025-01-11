@@ -47,6 +47,18 @@ def chat():
     if not years or len(years) > 2:
         return jsonify({"text": "Please select a year"})
 
+     # Prepare metadata
+    metadata = {
+        "description": "Land cover classification data",
+        "source": "MODIS Terra/Aqua satellite imagery",
+        "processing_steps": [
+            "Data downloaded from NASA EarthData",
+            "Reprojected to WGS84 EPSG:4326",
+            "Processed to extract land cover type"
+        ],
+    }
+
+
     # Parse the query
     parsed_query = {
         "intent": intent,
@@ -55,7 +67,7 @@ def chat():
         "comments": comments
     }
     
-    result = analyze_query(parsed_query, DATA_DIR)
+    result = analyze_query(parsed_query, DATA_DIR, metadata)
 
     # Prepare response
     response = {

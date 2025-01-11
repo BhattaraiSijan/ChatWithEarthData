@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib
 import numpy as np
 import folium
 import rasterio
@@ -16,6 +17,7 @@ from rasterio.warp import calculate_default_transform, reproject, Resampling
 from shapely.geometry import mapping
 from io import BytesIO
 
+matplotlib.use('Agg')
 
 def draw_choropleth_map(variable, year, data_dir):
     """

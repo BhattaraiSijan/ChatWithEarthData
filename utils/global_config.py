@@ -70,3 +70,5 @@ VISUALIZATION_CAPTIONS = {
     "side_by_side_maps": "Side-by-side maps comparing spatial distribution of {variable} for the selected years.",
     "pie_chart": "Statistical summary of {variable} for the selected year.",
 }
+
+OPENAI_API_KEY = "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"
