@@ -4,17 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Land Cover Data Analysis - By Sijan Bhattarai</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="../static/css/style.css">
     <script src="../static/js/script.js" defer></script>
 </head>
 <body>
+    <!-- Loading Spinner -->
     <div id="loading-spinner" style="display: none;">
         <div class="spinner"></div>
         <p>Loading... Please wait.</p>
     </div>
+
+    <!-- Main Container -->
     <div class="main-container">
         <div class="shadow-box">
-            <!-- Left Column: Form -->
+            <!-- Form Container -->
             <div class="form-container">
                 <h2>Analyze Land Cover Earth Data</h2>
                 <form id="analysis-form">
@@ -23,7 +27,6 @@
                         <label for="variable-select">Select Variable to analyze:</label>
                         <select id="variable-select" name="variable">
                             <option value="" disabled selected>Select Variable</option>
-                            <!-- Options populated dynamically by script.js -->
                         </select>
                     </div>
 
@@ -32,17 +35,13 @@
                         <label for="analysis-type-select">Select Analysis Type:</label>
                         <select id="analysis-type-select" name="analysis-type">
                             <option value="" disabled selected>Select Analysis Type</option>
-                            <!-- Options populated dynamically by script.js -->
                         </select>
                     </div>
 
                     <!-- Year Selection -->
                     <div class="form-group">
                         <label for="years-select">Select Year:</label>
-                        <select id="years-select" name="years">
-                            <!-- Options populated dynamically by script.js -->
-                        </select>
-                        <!-- <small>* You can select up to 2 years for comparison analysis.</small> -->
+                        <select id="years-select" name="years"></select>
                     </div>
 
                     <!-- Comments -->
@@ -56,15 +55,11 @@
                 </form>
             </div>
 
-            <!-- Right Column: Results -->
+            <!-- Results Container -->
             <div class="results-container">
                 <h2>Results</h2>
-                <div id="visualization-results">
-                    <!-- Dynamic visualizations will be appended here -->
-                </div>
-                <div id="text-results">
-                    <!-- Analysis summary text will be displayed here -->
-                </div>
+                <div id="visualization-results"></div>
+                <div id="text-results"></div>
             </div>
         </div>
     </div>
