@@ -209,3 +209,72 @@ iframe #map {
     background: rgba(255, 255, 255, 0.8);
     z-index: 9999;
 }
+/* Text Results Container */
+.text-results-container {
+    background-color: #f9f9f9; /* Light grey background */
+    border: 1px solid #ddd; /* Subtle border */
+    border-radius: 8px; /* Rounded corners */
+    padding: 20px; /* Add padding */
+    margin-bottom: 20px; /* Spacing from other elements */
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+}
+
+/* Text Results Title */
+.text-results-title {
+    font-size: 20px;
+    font-weight: bold;
+    color: #333; /* Dark text color */
+    margin-bottom: 10px; /* Space below the title */
+}
+
+/* Text Results Content */
+.text-results-content {
+    font-size: 16px;
+    line-height: 1.6; /* Better readability */
+    color: #555; /* Softer text color */
+    padding: 10px;
+    border-left: 4px solid #007bff; /* Left accent border */
+    background-color: #fff; /* White background */
+}
+
+/* Visualization Container */
+.visualization-container {
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+/* Visualization Title */
+.visualization-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #007bff; /* Blue color for emphasis */
+    margin-bottom: 10px;
+}
+
+/* Visualization Image */
+.visualization-image {
+    max-width: 100%;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 5px;
+    background-color: #f8f8f8;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Visualization Iframe */
+.visualization-iframe {
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+/* Container for the map and text results */
+#visualization-results {
+    margin-bottom: 3px; /* Ensure the gap is always 3px */
+    border-bottom: 1px solid #ddd; /* Add a subtle horizontal line */
+    padding-bottom: 10px; /* Add some spacing inside the border */
+}
+
+/* Text Results Container */
+#text-results {
+    margin-top: 3px; /* Ensure consistent spacing above text results */
+}

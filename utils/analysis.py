@@ -1,11 +1,12 @@
 import os
 import rasterio
 import numpy as np
-from utils.global_config import VARIABLES, YEARS, VARIABLE_CODE_MAPPING, ANALYSIS_VISUALIZATIONS, OPENAI_API_KEY
+from utils.global_config import VARIABLES, YEARS, VARIABLE_CODE_MAPPING, ANALYSIS_VISUALIZATIONS
 from utils.visualization import generate_visualizations
 import rioxarray
 import openai
-
+from dotenv import load_dotenv
+load_dotenv()
 
 def analyze_query(query, data_dir, metadata):
     """
@@ -101,8 +102,6 @@ def get_variable_code(variable):
 
 
 # Set OpenAI API key
-openai.api_key = OPENAI_API_KEY
-
 def generate_analysis_summary(data, analysis_type, metadata, variable, user_comment=None):
     """
     Generate a text summary using ChatGPT API based on the analysis type, processed data, and metadata.
@@ -117,6 +116,7 @@ def generate_analysis_summary(data, analysis_type, metadata, variable, user_comm
     Returns:
         str: Text summary of the analysis.
     """
+    openai.api_key = os.getenv('OPENAI_API_KEY') 
     # Extract summary statistics from the data
     summary_stats = []
     for year, details in data.items():

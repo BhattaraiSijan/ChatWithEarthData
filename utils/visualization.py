@@ -5,6 +5,7 @@ import folium
 import rasterio
 import io
 import os
+import copy
 import base64
 import json
 import rasterio
@@ -98,6 +99,8 @@ def draw_map(variable, year, data_dir):
     # Open the raster file
     with rasterio.open(tif_path) as src:
         if src.crs.to_string() != "EPSG:4326":
+            print("src.crs.to_string()")
+            print(src.crs.to_string())
             transform, width, height = calculate_default_transform(
                 src.crs, "EPSG:4326", src.width, src.height, *src.bounds
             )
@@ -126,39 +129,40 @@ def draw_map(variable, year, data_dir):
         scale_factor = 1
         mask_resized = mask[::scale_factor, ::scale_factor]
 
-        # # Adjust the transform for the downscaled mask
-        # transform_resized = transform * Affine.scale(scale_factor)
-
         # Get the bounding box
         left, bottom, right, top = rasterio.transform.array_bounds(
             mask_resized.shape[0], mask_resized.shape[1], transform
         )
+        print (transform)
 
     # Generate the overlay image in memory
     img_buffer = BytesIO()
-    fig, ax = plt.subplots(figsize=(8, 6), dpi=100, frameon=False)
-    ax.imshow(mask_resized, cmap="Oranges", interpolation="nearest")
-    ax.axis("off")  # Remove axes
-    fig.patch.set_alpha(0.0)  # Set background to fully transparent
+    my_cmap = copy.copy(plt.cm.get_cmap('cubehelix'))  # get a copy of the gray color map
+    my_cmap.set_bad(alpha=0)  # set how the colormap handles 'bad' values
+    print(mask_resized.min())
+    print(mask_resized.max())
+    mask_resized[mask_resized<=0.] = np.nan
+    plt.imshow(mask_resized, cmap=my_cmap, interpolation="nearest")
+    plt.axis("off")
     plt.savefig(img_buffer, format="png", bbox_inches="tight", pad_inches=0, transparent=True)
-    plt.close(fig)
+    plt.close()
     img_buffer.seek(0)
     image_base64 = base64.b64encode(img_buffer.getvalue()).decode("utf-8")
     img_buffer.close()
-
+    
     # Convert base64 image to a Folium-compatible data URL
     image_url = f"data:image/png;base64,{image_base64}"
 
     # Create the Folium map
     center_lat = (top + bottom) / 2
     center_lon = (left + right) / 2
-    m = folium.Map(location=[center_lat, center_lon], zoom_start=3)
-
+    m = folium.Map(location=[center_lat, center_lon], zoom_start=4, tiles="Cartodb Positron")
+    print(bottom, left, top, right)
     # Overlay the in-memory image
     folium.raster_layers.ImageOverlay(
         image=image_url,
         bounds=[[bottom, left], [top, right]],
-        opacity=0.8,
+        opacity=0.5,
     ).add_to(m)
 
     # Add layer control

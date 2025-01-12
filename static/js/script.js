@@ -98,9 +98,20 @@ document.addEventListener("DOMContentLoaded", async function () {
     
         // Display text summary
         if (result.text) {
+            const textContainer = document.createElement("div");
+            textContainer.className = "text-results-container";
+
+            const textTitle = document.createElement("h3");
+            textTitle.textContent = "Analysis Summary:";
+            textTitle.className = "text-results-title";
+
             const textElement = document.createElement("p");
-            textElement.textContent = result.text;
-            textResults.appendChild(textElement);
+            textElement.textContent = result.text; // Use innerHTML if the backend sends formatted text
+            textElement.className = "text-results-content";
+
+            textContainer.appendChild(textTitle);
+            textContainer.appendChild(textElement);
+            textResults.appendChild(textContainer);
         }
     
         // Display visualizations
@@ -108,11 +119,6 @@ document.addEventListener("DOMContentLoaded", async function () {
             Object.entries(result.image).forEach(([vizType, base64String]) => {
                 const container = document.createElement("div");
                 container.className = "visualization-container";
-    
-                // Add title for the visualization
-                const title = document.createElement("h4");
-                title.textContent = vizType.replace(/_/g, " ").toUpperCase();
-                container.appendChild(title);
     
                 if (vizType === "map") {
                     // Logic for displaying the map in an iframe
@@ -122,7 +128,8 @@ document.addEventListener("DOMContentLoaded", async function () {
                     iframe.style.width = "100%";
                     iframe.style.height = "1000px"; // Example height
                     document.getElementById("visualization-results").appendChild(iframe);
-                } else {
+                } 
+                else {
                     // Logic for displaying the choropleth map as an image
                     const img = document.createElement("img");
                     img.src = `data:image/png;base64,${base64String}`;

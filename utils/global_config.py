@@ -55,7 +55,7 @@ YEARS = list(range(2011, 2021))  # 2011 to 2020
 # Default Visualization Mapping for Each Analysis Type
 ANALYSIS_VISUALIZATIONS = {
     "trend_analysis": ["line_chart"],
-    "spatial_distribution": ["choropleth_map","map"],
+    "spatial_distribution": ["map"],
     "change_detection": ["change_map", "bar_chart"],
     "comparison": ["side_by_side_maps", "bar_chart"],
     "statistical_summary": ["pie_chart"],
@@ -70,5 +70,3 @@ VISUALIZATION_CAPTIONS = {
     "side_by_side_maps": "Side-by-side maps comparing spatial distribution of {variable} for the selected years.",
     "pie_chart": "Statistical summary of {variable} for the selected year.",
 }
-
-OPENAI_API_KEY = "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"
